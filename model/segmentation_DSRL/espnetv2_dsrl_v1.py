@@ -20,16 +20,19 @@ from torch.nn import functional as F
 import sys
 
 from model.classification.espnetv2 import EESPNet
+from model.sr.espcn_ps import ESPCN
 from nn_layers.espnet_utils import *
 from nn_layers.efficient_pyramid_pool import EfficientPyrPool
 from nn_layers.efficient_pt import EfficientPWConv
 
 
 def Deconv_BN_ACT(in_plane, out_plane):
-    conv_trans = nn.ConvTranspose2d(in_plane, out_plane ,kernel_size=3, stride=2,padding=1, output_padding=1, bias=False)
-    norm =  nn.BatchNorm2d(out_plane)
+    conv_trans = nn.ConvTranspose2d(in_plane, out_plane, kernel_size=3, stride=2, padding=1, output_padding=1,
+                                    bias=False)
+    norm = nn.BatchNorm2d(out_plane)
     act = nn.PReLU(out_plane)
     return nn.Sequential(conv_trans, norm, act)
+
 
 class ESPNetv2Segmentation(nn.Module):
     '''
@@ -60,10 +63,10 @@ class ESPNetv2Segmentation(nn.Module):
         # add end
 
         base_dec_planes = dec_feat_dict[dataset]
-        dec_planes = [4*base_dec_planes, 3*base_dec_planes, 2*base_dec_planes, classes]
-        #=============================================================
+        dec_planes = [4 * base_dec_planes, 3 * base_dec_planes, 2 * base_dec_planes, classes]
+        # =============================================================
         #                   SEGMENTATION BASE NETWORK
-        #=============================================================
+        # =============================================================
         #
         #  same as Line36-66 in ESPNetv2
         # dec_feat_dict = {
@@ -99,11 +102,19 @@ class ESPNetv2Segmentation(nn.Module):
                                       )
         # end of line 66
         #   
-        #=============================================================
+        # =============================================================
         #                   SSSR BRANCH
-        #=============================================================           
-        self.bu_dec_l5 = Deconv_BN_ACT(dec_planes[3],dec_planes[3])
-        self.bu_dec_l6 = Deconv_BN_ACT(dec_planes[3],dec_planes[3])
+        # =============================================================
+        self.bu_dec_l5 = Deconv_BN_ACT(dec_planes[3], dec_planes[3])    # 2x
+        self.bu_dec_l6 = Deconv_BN_ACT(dec_planes[3], dec_planes[3])    # 2x
+
+        self.featureTransform = nn.Sequential(
+            nn.Conv2d(classes, 3, 1),
+            nn.BatchNorm2d(3),
+            nn.ReLU(inplace=True)
+        )
+
+        self.espcn = ESPCN(scale_factor=16 * 2, num_channels=256, out_ch=3)
 
         self.init_params()
 
@@ -147,65 +158,72 @@ class ESPNetv2Segmentation(nn.Module):
                         if p.requires_grad:
                             yield p
 
-    def forward(self, x):
+    def forward(self, x):    # (4,3,1024,512)
 
         x_size = (x.size(2), x.size(3))
 
         ###### this model outputs: enc_out_l4
-        enc_out_l1 = self.base_net.level1(x)  # 112
+        enc_out_l1 = self.base_net.level1(x)  # 112   # (4,32,512,256)
         if not self.base_net.input_reinforcement:
             del x
             x = None
 
-        enc_out_l2 = self.base_net.level2_0(enc_out_l1, x)  # 56
+        enc_out_l2 = self.base_net.level2_0(enc_out_l1, x)  # 56   # (4,128,256,128)
 
-        enc_out_l3_0 = self.base_net.level3_0(enc_out_l2, x)  # down-sample
+        enc_out_l3_0 = self.base_net.level3_0(enc_out_l2, x)  # down-sample    # (4,256,128,64)
         for i, layer in enumerate(self.base_net.level3):
             if i == 0:
                 enc_out_l3 = layer(enc_out_l3_0)
             else:
-                enc_out_l3 = layer(enc_out_l3)
+                enc_out_l3 = layer(enc_out_l3)       # (4,256,128,64)
 
-        enc_out_l4_0 = self.base_net.level4_0(enc_out_l3, x)  # down-sample
+        enc_out_l4_0 = self.base_net.level4_0(enc_out_l3, x)  # down-sample   # (4,512,64,32)
         for i, layer in enumerate(self.base_net.level4):
             if i == 0:
                 enc_out_l4 = layer(enc_out_l4_0)
             else:
-                enc_out_l4 = layer(enc_out_l4)
+                enc_out_l4 = layer(enc_out_l4)    # (4,512,64,32)
 
         # bottom-up decoding
         ###### this model outputs: bu_out0
-        bu_out0 = self.bu_dec_l1(enc_out_l4)
+        bu_out0 = self.bu_dec_l1(enc_out_l4)   # (4,64,64,32)
 
         # Decoding block
         ###### this model outputs: bu_out1
-        bu_out = self.upsample(bu_out0)
-        enc_out_l3_proj = self.merge_enc_dec_l2(enc_out_l3)
-        bu_out = enc_out_l3_proj + bu_out
-        bu_out = self.bu_br_l2(bu_out)
-        bu_out1 = self.bu_dec_l2(bu_out)
+        bu_out = self.upsample(bu_out0)       # (4,64,128,64)
+        enc_out_l3_proj = self.merge_enc_dec_l2(enc_out_l3)  # (4,64,128,64)
+        bu_out = enc_out_l3_proj + bu_out  # (4,64,128,64)
+        bu_out = self.bu_br_l2(bu_out) # (4,64,128,64)
+        bu_out1 = self.bu_dec_l2(bu_out) # (4,48,128,64)
 
-        #decoding block
+        # decoding block
         ###### this model outputs: bu_out2
-        bu_out = self.upsample(bu_out1)
-        enc_out_l2_proj = self.merge_enc_dec_l3(enc_out_l2)
-        bu_out = enc_out_l2_proj + bu_out
-        bu_out = self.bu_br_l3(bu_out)
-        bu_out2 = self.bu_dec_l3(bu_out)
-        
+        bu_out = self.upsample(bu_out1)   # (4,48,256,128)
+        enc_out_l2_proj = self.merge_enc_dec_l3(enc_out_l2)  # (4,48,256,128)
+        bu_out = enc_out_l2_proj + bu_out   # (4,48,256,128)
+        bu_out = self.bu_br_l3(bu_out)   # (4,48,256,128)
+        bu_out2 = self.bu_dec_l3(bu_out)   # (4,32,256,128)
+
         # decoding block
         ###### this model outputs: bu_out
-        bu_out = self.upsample(bu_out2)
-        enc_out_l1_proj = self.merge_enc_dec_l4(enc_out_l1)
-        bu_out = enc_out_l1_proj + bu_out
-        bu_out = self.bu_br_l4(bu_out)
-        bu_out = self.bu_dec_l4(bu_out)
+        bu_out = self.upsample(bu_out2)  # (4,32,512,256)
+        enc_out_l1_proj = self.merge_enc_dec_l4(enc_out_l1) # (4,32,512,256)
+        bu_out = enc_out_l1_proj + bu_out   # (4,32,512,256)
+        bu_out = self.bu_br_l4(bu_out)   # (4,32,512,256)
+        bu_out = self.bu_dec_l4(bu_out)   # (4,32,512,256)
 
         # sssr block
-        sssr_1 = self.bu_dec_l5(bu_out)
-        sssr_out = self.bu_dec_l6(sssr_1)
+        sssr_1 = self.bu_dec_l5(bu_out)   # (4,21,1024,512)
+        sssr_out = self.bu_dec_l6(sssr_1)   # (4,21,2048,1024)
 
-        return sssr_out
+
+        sssr_decoder_transformed = self.featureTransform(sssr_out)
+
+        y = self.espcn.first_part(enc_out_l4)
+        y = self.espcn.last_part(y)
+        sisr_out = y     # # (4,3,2048,1024)
+
+        return sssr_out, sssr_decoder_transformed, sisr_out, sisr_out
 
 
 def espnetv2_seg(args):
@@ -214,8 +232,6 @@ def espnetv2_seg(args):
     dataset = args.dataset
     model = ESPNetv2Segmentation(args, classes=classes, dataset=dataset)
     return model
-
-
 
 # if __name__ == "__main__":
 #     parser = ArgumentParser()
@@ -239,4 +255,3 @@ def espnetv2_seg(args):
 #     net = ESPNetv2Segmentation(args)
 #     out = net(input)
 #     print(out.shape)
-
