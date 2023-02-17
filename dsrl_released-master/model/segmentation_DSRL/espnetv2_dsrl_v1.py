@@ -11,16 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from argparse import ArgumentParser
 
 import torch
 from torch import nn
 from torch.nn import init
+from torch.nn import functional as F
+import sys
+
+sys.path.append("../..")
+from model.classification.espnetv2 import EESPNet
 from nn_layers.espnet_utils import *
 from nn_layers.efficient_pyramid_pool import EfficientPyrPool
 from nn_layers.efficient_pt import EfficientPWConv
-from model.classification.espnetv2 import EESPNet
-from torch.nn import functional as F
 
 
 def Deconv_BN_ACT(in_plane, out_plane):
@@ -214,4 +217,27 @@ def espnetv2_seg(args):
     return model
 
 
+
+# if __name__ == "__main__":
+#     parser = ArgumentParser()
+#     # mdoel details
+#     parser.add_argument('--cross-os', type=float, default=2.0, help='Factor by which feature for cross')
+#     parser.add_argument('--model', default="espnetv2", help='Model name')
+#     parser.add_argument('--ckpt-file', default='', help='Pretrained weights directory.')
+#     parser.add_argument('--s', default=2.0, type=float, help='scale')
+#     # dataset details
+#     parser.add_argument('--data-path', default="", help='Data directory')
+#     parser.add_argument('--dataset', default='city', help='Dataset name')
+#     parser.add_argument('--savedir', default="result", help='save prediction directory')
+#     # input details
+#     parser.add_argument('--im-size', type=int, nargs="+", default=[512, 256], help='Image size for testing (W x H)')
+#     parser.add_argument('--split', default='val', choices=['val', 'test'], help='data split')
+#     parser.add_argument('--channels', default=3, type=int, help='Input channels')
+#     args = parser.parse_args()
+#
+#
+#     input = torch.randn(4, 3, 1024, 512)
+#     net = ESPNetv2Segmentation(args)
+#     out = net(input)
+#     print(out.shape)
 
