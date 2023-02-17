@@ -87,13 +87,20 @@ def evaluate_segmentation(gt_dir, result_dir, num_classes, ignore_label, result_
     
     result_dict = dict([(osp.split(p)[1][:-len(result_suffix)], p) # -16
                         for p in find_all_pred_png(result_dir)])
+    print("gt_dict:",gt_dict)
+    print("result_dict:",result_dict)
     result_gt_keys = set(gt_dict.keys()) & set(result_dict.keys())
+    print("result_gt_keys:", result_gt_keys)
     if len(result_gt_keys) != len(gt_dict):
         raise ValueError('Result folder only has {} of {} ground truth files.'
                          .format(len(result_gt_keys), len(gt_dict)))
     hist = np.zeros((num_classes, num_classes))
     i = 0
     gt_id_set = set()
+
+    print("result_dict:", result_dict)
+    print("gt_dict:", gt_dict)
+
     for key in sorted(result_dict.keys()):
         gt_path = gt_dict[key]
         result_path = result_dict[key]
@@ -104,6 +111,7 @@ def evaluate_segmentation(gt_dir, result_dir, num_classes, ignore_label, result_
         i += 1
         if i % 20 == 0:
             print("Processed {}/{}".format(i, len(gt_dict)))
+    # print("gt_id_set:", gt_id_set)
     if ignore_label is not None:
         gt_id_set.remove(ignore_label)
         print("Ignore the label id {} ".format(ignore_label))

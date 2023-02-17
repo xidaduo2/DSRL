@@ -19,7 +19,6 @@ from torch.nn import init
 from torch.nn import functional as F
 import sys
 
-sys.path.append("../..")
 from model.classification.espnetv2 import EESPNet
 from nn_layers.espnet_utils import *
 from nn_layers.efficient_pyramid_pool import EfficientPyrPool

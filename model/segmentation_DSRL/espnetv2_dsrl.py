@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import sys
 import torch
 from torch.nn import init
+from torch.nn import functional as F
+
 from nn_layers.espnet_utils import *
 from nn_layers.efficient_pyramid_pool import EfficientPyrPool
 from nn_layers.efficient_pt import EfficientPWConv
 from model.classification.espnetv2 import EESPNet
-from torch.nn import functional as F
+
 
 
 def Deconv_BN_ACT(in_plane, out_plane):
@@ -41,7 +43,7 @@ class ESPNetv2Segmentation(nn.Module):
         # =============================================================
 
         #   same as Line27-31 in ESPNetv2, except the dec_planes
-        
+        dec_feat_dict = []
         base_dec_planes = dec_feat_dict[dataset]
         dec_planes = [4*base_dec_planes, 3*base_dec_planes, 2*base_dec_planes, classes]
         #=============================================================
@@ -67,10 +69,10 @@ class ESPNetv2Segmentation(nn.Module):
         '''
 
     def get_basenet_params(self):
-
+        pass
 
     def get_segment_params(self):
-
+        pass
 
     def forward(self, x):
 
@@ -90,12 +92,11 @@ class ESPNetv2Segmentation(nn.Module):
         
         # decoding block
         ###### this model outputs: bu_out
-        
+        bu_out = None
         # sssr block
         
         sssr_1 = self.bu_dec_l5(bu_out)
-        sssr_out = self.b
-        u_dec_l6(sssr_1)
+        sssr_out = self.bu_dec_l6(sssr_1)
 
         return  sssr_out 
 

@@ -79,9 +79,10 @@ def predict(args, model, image_list, device):
         img = img.unsqueeze(0)  # add a batch dimension
         img = img.to(device)
         seg_out = model(img)
-        
-        name = imgName.split('/')[-1]
-        img_extn = imgName.split('.')[-1]
+
+        # name = imgName.split('/')[-1]
+        name = imgName.split('\\')[-1]
+        # img_extn = imgName.split('.')[-1]
 
         # get semantic segmnattaion results
         seg_out = seg_out.squeeze(0)  
@@ -125,7 +126,7 @@ def main(args):
     print('# of images for testing: {}'.format(len(image_list)))
 
     #===================== load model ============================
-    from model.segmentation_DSRL.espnetv2_dsrl import espnetv2_seg
+    from model.segmentation_DSRL.espnetv2_dsrl_v1 import espnetv2_seg
     args.classes = seg_classes
     model = espnetv2_seg(args)
     model = model.to(device=device)
@@ -149,7 +150,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     # mdoel details
     parser.add_argument('--cross-os', type=float, default=2.0, help='Factor by which feature for cross')
-    parser.add_argument('--model', default="espnetv2", help='Model name')
+    parser.add_argument('--model', default="espnetv2_dsrl", choices=['espnetv2_dsrl', 'espnetv2'], help='Model name')
     parser.add_argument('--ckpt-file', default='', help='Pretrained weights directory.')
     parser.add_argument('--s', default=2.0, type=float, help='scale')
     # dataset details

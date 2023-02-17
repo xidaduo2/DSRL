@@ -2,3 +2,5 @@
 data
 EdgeNets
 __pycache__
+espnetv2_dsrl_512x1024_output
+gtFine_val_gt
