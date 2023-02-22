@@ -23,7 +23,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--outputs-dir', type=str, default='output')  # , required=True)
     parser.add_argument('--lr', type=float, default=1e-2)   # 1e-4
-    parser.add_argument('--batch-size', type=int, default=4)
+    parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--epochs', type=int, default=40)
     parser.add_argument('--num-workers', type=int, default=4)
     parser.add_argument('--seed', type=int, default=123)
@@ -78,7 +78,8 @@ if __name__ == '__main__':
     # DSRL (semantic segmentation net guide super-resolution net
     # model = DSRL(in_ch=3, out_ch=args.num_classes).to(device)
     # ===================== load model ============================
-    args.classes = 19+1    # cityscapes
+    # args.classes = 19+1    # cityscapes
+    args.classes = 19    # cityscapes
     model = espnetv2_seg(args)
     model = model.to(device=device)
 

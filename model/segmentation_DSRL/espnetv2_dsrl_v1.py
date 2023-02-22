@@ -114,7 +114,7 @@ class ESPNetv2Segmentation(nn.Module):
             nn.ReLU(inplace=True)
         )
 
-        self.espcn = ESPCN(scale_factor=16 * 2, num_channels=256, out_ch=3)
+        self.espcn = ESPCN(scale_factor=16 * 2, num_channels=512, out_ch=3)
 
         self.init_params()
 
