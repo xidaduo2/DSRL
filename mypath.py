@@ -6,7 +6,7 @@ class Path(object):
         # elif dataset == 'sbd':
         #     return '/path/to/datasets/benchmark_RELEASE/'  # folder that contains dataset/.
         if dataset == 'cityscapes':
-            return '/home/yy/LZY/AttaNet-main/data/cityscapes/'     # foler that contains leftImg8bit/
+            return 'D:/xidaduo/DATASETS/CityScapes'     # foler that contains leftImg8bit/
         # elif dataset == 'coco':
         #     return '/path/to/datasets/coco/'
         else:

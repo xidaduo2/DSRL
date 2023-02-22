@@ -57,7 +57,7 @@ class ESPNetv2Segmentation(nn.Module):
         # add
         dec_feat_dict = {
             'pascal': 16,
-            'city': 16,
+            'cityscapes': 16,
             'coco': 32
         }
         # add end

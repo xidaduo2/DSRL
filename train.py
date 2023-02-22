@@ -48,10 +48,10 @@ if __name__ == '__main__':
     parser.add_argument('--s', default=2.0, type=float, help='scale')
     # dataset details
     parser.add_argument('--data-path', default="", help='Data directory')
-    parser.add_argument('--dataset', default='city', help='Dataset name')
+    # parser.add_argument('--dataset', default='city', help='Dataset name')
     parser.add_argument('--savedir', default="result", help='save prediction directory')
     # input details
-    parser.add_argument('--im-size', type=int, nargs="+", default=[512, 256], help='Image size for testing (W x H)')
+    # parser.add_argument('--im-size', type=int, nargs="+", default=[512, 256], help='Image size for testing (W x H)')
     # parser.add_argument('--split', default='train', choices=['train', 'val', 'test'], help='data split')
     parser.add_argument('--channels', default=3, type=int, help='Input channels')
 

@@ -4,3 +4,4 @@ EdgeNets
 __pycache__
 espnetv2_dsrl_512x1024_output
 gtFine_val_gt
+experiment_dir_test_dsrl/
